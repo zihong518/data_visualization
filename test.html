@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Network</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.1/papaparse.min.js"></script>
+    <style type="text/css">
+      #mynetwork {
+        width: 600px;
+        height: 400px;
+        border: 1px solid lightgray;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="mynetwork"></div>
+    <script type="text/javascript">
+      let test = {}
+      function main(node,link) {
+		  console.log(node);
+        var nodes = new vis.DataSet(node)
+        // create an array with edges
+        var edges = new vis.DataSet(link)
+
+        // create a network
+        var container = document.getElementById('mynetwork')
+        var data = {
+          nodes: nodes,
+          edges: edges,
+        }
+        var options = {}
+        var network = new vis.Network(container, data, options)
+      }
+
+      function cleanData(data) {
+        let dataFirst = data.slice(1, 2).map((d) => {
+          let dict = {
+            title: d[2],
+            casts: d[4].split(','),
+          }
+          return dict
+        })
+        let nodes = []
+        let index = 0
+        let titleList = []
+        dataFirst.forEach((d) => {
+          d.casts.forEach((cast) => {
+            if (cast !== '') {
+              if (nodes.find((el) => el.name == cast)) {
+                let id = nodes.find((el) => el.name == cast).id
+                nodes[id].title.push(d.title)
+              }
+              let castDict = {
+                id: index,
+                label: cast,
+                title: [d.title][0],
+              }
+              nodes.push(castDict)
+              index++
+              // console.log(titleList);
+              // console.log());
+              if (!titleList.includes(d.title)) {
+                titleList.push(d.title[0])
+              }
+            }
+          })
+        })
+        const titleCast = titleList.map((title) => {
+          return nodes.filter((node) => node.title.includes(title))
+        })
+        let nodeLink = []
+
+        titleCast.forEach((el) => {
+          for (let i = 0; i < el.length; i++) {
+            for (let j = i + 1; j < el.length; j++) {
+              const relation = {
+                from: el[i].id,
+                to: el[j].id,
+              }
+              nodeLink.push(relation)
+            }
+          }
+        })
+		return nodes, nodeLink
+      }
+      fetch('https://raw.githubusercontent.com/zihong518/data_visualization/master/netflix_titles.csv')
+        .then(function (response) {
+          return response.text()
+        })
+        .then((v) => Papa.parse(v))
+        .then(function (myJson) {
+          test = myJson.data
+		  main(cleanData(test))
+        })
+      // .then(main())
+
+      // create an array with nodes
+    </script>
+  </body>
+</html>

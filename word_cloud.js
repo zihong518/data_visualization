@@ -46,7 +46,7 @@ const tokenize = function (sentence) {
     .toLowerCase()
     .replace(/[()!\.,:;*\?]/g, '')
     .replace(/\s+/g, ' ')
-	.replace(/\d+/g, ' ')
+	  .replace(/\d+/g, ' ')
     .split(' ')
 
   words = words.filter((x) => !stopWord.includes(x))
