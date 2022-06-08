@@ -7,14 +7,18 @@ const margin = { top: 10, right: 30, bottom: 30, left: 40 },
 const svg = d3
   .select('#my_dataviz')
   .append('svg')
-  .attr('width', width + margin.left + margin.right)
-  .attr('height', height + margin.top + margin.bottom)
+  // .attr('width', width + margin.left + margin.right)
+  // .attr('height', height + margin.top + margin.bottom)
+  .attr('preserveAspectRatio', 'xMinYMin meet')
+  .attr('viewBox', '0 0 800 600')
+  .classed('svg-content', true)
+
   .append('g')
   .attr('transform', `translate(${margin.left}, ${margin.top})`)
 const selectId = 'tt0810819'
 d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/data.csv').then(async function (data) {
   // 將cast整理成array
-  let dataFirst = data.map((d) => {
+  let dataFirst = data.filter(x=>x.cast!=="").map((d) => {
     let dict = {
       id: d.tconst,
       title: d.title,
@@ -213,10 +217,10 @@ d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/da
       })
     movieNode
       .attr('x', function (d) {
-        return d.x - 20
+        return d.x - 25
       })
       .attr('y', function (d) {
-        return d.y - 20
+        return d.y - 25
       })
   }
 })
