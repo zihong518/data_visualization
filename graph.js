@@ -1,7 +1,7 @@
 // set the dimensions and margins of the graph
 const margin = { top: 10, right: 30, bottom: 30, left: 40 },
-  width = 500 - margin.left - margin.right,
-  height = 400 - margin.top - margin.bottom
+  width = 1000 - margin.left - margin.right,
+  height = 800 - margin.top - margin.bottom
 
 // append the svg object to the body of the page
 const svg = d3
@@ -11,14 +11,15 @@ const svg = d3
   .attr('height', height + margin.top + margin.bottom)
   .append('g')
   .attr('transform', `translate(${margin.left}, ${margin.top})`)
-const selectId = 'tt9839146'
-d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/data.csv').then(function (data) {
+const selectId = 'tt0810819'
+d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/data.csv').then(async function (data) {
   // 將cast整理成array
   let dataFirst = data.map((d) => {
     let dict = {
       id: d.tconst,
       title: d.title,
       casts: d.cast.split(','),
+      image: d.image,
     }
     return dict
   })
@@ -29,14 +30,23 @@ d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/da
   dataFirst
     .filter((x) => x.id === selectId)
     .map((x) => {
+      let movieDict = {
+        filmId: [x.id],
+        name: x.title,
+        type: 'movie',
+        image: x.image,
+      }
+      nodes.push(movieDict)
       x.casts.map((cast) => {
         let castDict = {
           filmId: [x.id],
           name: cast,
+          type: 'character',
         }
         nodes.push(castDict)
         castSelected.push(cast)
       })
+
       nodes.map((node) => {
         dataFirst.map((film) => {
           if (film.casts.includes(node.name)) {
@@ -49,44 +59,50 @@ d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/da
                 })
               })
             }
-            if (film.id !== selectId) {
-              film.casts.map((cast) => {
-                if (!castSelected.includes(cast)) {
-                  let castDict = {
-                    filmId: [film.id],
-                    name: cast,
-                  }
-
-                  nodes.push(castDict)
-                  castSelected.push(cast)
-                }
-              })
-            }
-            if (!filmList.includes(film.id)) {
-              filmList.push(film.id)
-            }
           }
         })
       })
-    })
-  // console.log(nodes)
-  // console.log(filmList)
-  // 做出link
-  const filmCast = filmList.map((filmId) => {
-    return nodes.filter((node) => node.filmId.includes(filmId))
-  })
-  let nodeLink = []
-  filmCast.map((el) => {
-    for (let i = 0; i < el.length; i++) {
-      for (let j = i + 1; j < el.length; j++) {
-        const relation = {
-          source: el[i].name,
-          target: el[j].name,
+      nodes.map((node) => {
+        if (node.filmId.length > 1) {
+          node.filmId.map((filmId) => {
+            if (filmId != selectId) {
+              let film = dataFirst.find((film) => film.id == filmId)
+              let movieDict = {
+                filmId: [film.id],
+                name: film.title,
+                type: 'movie',
+                image: film.image,
+              }
+              nodes.push(movieDict)
+            }
+          })
         }
-        nodeLink.push(relation)
-      }
-    }
-  })
+      })
+    })
+  console.log(nodes)
+  let nodeLink = []
+
+  nodes
+    .filter((node) => node.type === 'movie')
+    .map((movie) => {
+      let id = movie.filmId[0]
+      filmList.push(id)
+      nodes
+        .filter((node) => node.type === 'character')
+        .map((actor) => {
+          if (actor.filmId.includes(id)) {
+            const relation = {
+              source: movie.name,
+              target: actor.name,
+            }
+            nodeLink.push(relation)
+          }
+        })
+    })
+  console.log(filmList)
+
+  console.log(nodeLink)
+
   let colorList = []
   for (let i = 0; i < filmList.length; i++) {
     colorList.push(d3.hsl((360 / filmList.length) * i, 0.75, 0.75))
@@ -104,101 +120,54 @@ d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/da
         }) // This provide  the id of a node
         .links(nodeLink), // and this the list of links
     )
-    .force('charge', d3.forceManyBody().strength(-20)) // This adds repulsion between nodes. Play with the -400 for the repulsion strength
+    .force('charge', d3.forceManyBody().strength(-200)) // This adds repulsion between nodes. Play with the -400 for the repulsion strength
     .force('center', d3.forceCenter(width / 2, height / 2)) // This force attracts nodes to the center of the svg area
     .on('tick', ticked)
-
-  async function getImageOut() {
-    let castList = nodes.map((x) => {
-      return x.name
-    })
-    async function getImage(name) {
-      let url = `https://en.wikipedia.org/w/api.php?action=query&titles=${name}&prop=pageimages&format=json&pithumbsize=300&origin=*`
-      const image = await fetch(url, {
-        method: 'GET',
-      })
-        .then((response) => {
-          return response.json()
-        })
-        .then((data) => {
-          return Object.values(data.query.pages)[0].thumbnail.source
-        })
-        .catch(() => {
-          return 'https://www.linustock.com/images/uploads/2018/08/1535076121.png'
-        })
-      return image
-    }
-    function test() {
-      return castList.map((x) => getImage(x))
-    }
-    let imgList =  test()
-    return imgList
-  }
-  let test
-  let imgList = getImageOut()
-  console.log(imgList);
-  async function getPromiseImage() {
-    let imgAfterPromise = []
-    const returnValue = await imgList.then(function(x){
-      x.map(function(data){
-       data.then(function(y){
-          console.log(y);
-        })
-      })
-    })
-    console.log(returnValue)
-    return returnValue
-  }
-  getPromiseImage()
-  // console.log(getPromiseImage());
-  // console.log(test);
-  // nodes.map(async (x) => {
-
-  //   let test =  getImage(x.name)
-  //   console.log(test)
-  //   imgList.push(test)
-  //   //console.log(imgList)
-  //   // getImage(x.name).then((data) => {
-  //   //   test = {
-  //   //     name: x.name,
-  //   //     href: data,
-  //   //   }
-
-  //   //   imgList.push(test)
-  //   //   console.log(imgList);
-  //   // })
-  // })
-
-  // for(let x of nodes){
-  //   let name = await getImage(x.name)
-  //   imgList.push(name)
-  // }
-  // let a  = await getImage(x.name)
-  // console.log(a)
-  console.log(imgList)
 
   // Initialize the links
   const link = svg
     .selectAll('line')
     .data(nodeLink)
     .join('line')
-    .style('stroke', (d) => lineColor(d.target.filmId[0]))
+    .style('stroke', (d) => lineColor(d.source.filmId[0]))
     .style('stroke-width', 4)
   // console.log(link);
   // Initialize the nodes
-  const node = svg.selectAll('circle').data(nodes).join('image').attr('href', ' ').attr('width', 40).attr('height', 40).call(drag(simulation))
+  console.log(nodes)
 
-  node
-    .append('text')
-    .attr('x', 20)
-    .attr('y', '0.31em')
-    .text((d) => d.name)
-    .clone(true)
-    .lower()
-    .attr('fill', 'black')
-    .attr('stroke', 'white')
-    .attr('stroke-width', 3)
+  const node = svg
+    .selectAll('g')
+    .data(nodes.filter((x) => x.type === 'character'))
+    .join('circle')
+    .attr('r', 8)
+    .style('fill', (d) => lineColor(d.filmId[0]))
+    .call(drag(simulation))
 
+  const movieNode = svg
+    .selectAll('image')
+    .data(nodes.filter((x) => x.type === 'movie'))
+    .join('image')
+    .attr('href', (d) => d.image)
+    .attr('width', 50)
+    .attr('height', 50)
+    .on('mouseover', hoverImg)
+    .call(drag(simulation))
+
+  // node
+  //   .append('text')
+  //   .attr('x', 20)
+  //   .attr('y', '0.31em')
+  //   .text((d) => d.name)
+  // .clone(true)
+  // .lower()
+  // .attr('fill', 'black')
+  // .attr('stroke', 'white')
+  // .attr('stroke-width', 3)
+
+  function hoverImg(event, d) {
+    // if(event.)
+    document.getElementById('hoverImg').src = d.image
+  }
   function drag(simulation) {
     function dragstarted(event, d) {
       if (!event.active) simulation.alphaTarget(0.8).restart()
@@ -236,6 +205,13 @@ d3.csv('https://raw.githubusercontent.com/zihong518/data_visualization/master/da
       })
 
     node
+      .attr('cx', function (d) {
+        return d.x
+      })
+      .attr('cy', function (d) {
+        return d.y
+      })
+    movieNode
       .attr('x', function (d) {
         return d.x - 20
       })
